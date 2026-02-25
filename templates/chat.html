@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Tusty RAG • Chat</title>
+  <link rel="stylesheet" href="/static/style.css?v=2" />
+</head>
+
+<body data-page="chat">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">T</div>
+        <div class="brandText">
+          <div class="brandName">Tusty RAG</div>
+          <div class="brandSub">Chat Assistant</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="navItem" href="/admin">
+          <span class="dot"></span> Admin
+        </a>
+        <a class="navItem active" href="/">
+          <span class="dot"></span> Chat
+        </a>
+      </nav>
+
+      <div class="sidebarFooter">
+        <div class="mini">
+          <div class="miniTitle">How it works</div>
+          <div class="miniText">
+            Your question → FAISS search → context → Gemini answer.
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 class="title">Company AI Chat</h1>
+        </div>
+
+        <div class="topbarRight">
+          <button class="btn btnGhost" id="btnTheme" type="button" title="Toggle theme">
+            Theme
+          </button>
+          <button class="btn btnGhost" id="btnNewChat" type="button" title="Clear chat">
+            New Chat
+          </button>
+        </div>
+      </header>
+
+      <section class="chatCard">
+        
+        <div class="chatBody" id="chatBody" aria-live="polite">
+          <!-- messages injected -->
+        </div>
+
+        <div class="chatComposer">
+          <textarea
+            id="questionInput"
+            class="chatInput"
+            rows="1"
+            placeholder="Type your question… (Enter to send, Shift+Enter for new line)"
+          ></textarea>
+
+          <button class="btn" id="btnSend" type="button">Send</button>
+        </div>
+
+        <div class="chatFooter">
+          <span class="muted">Ask questions based on uploaded documents.</span>
+          <a class="mutedLink" href="/admin">Open Admin</a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span>© Tusty RAG • Chat UI</span>
+        <span class="muted">History saved locally in your browser</span>
+      </footer>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/static/script.js?v=1"></script>
+</body>
+</html>

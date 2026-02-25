@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+google-generativeai
+faiss-cpu
+sentence-transformers
+jinja2
+
+pypdf
+python-docx
+openpyxl
+pillow
+pytesseract

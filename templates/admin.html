@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Tusty RAG • Admin</title>
+  <link rel="stylesheet" href="/static/style.css?v=2">
+</head>
+
+<body data-page="admin">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">T</div>
+        <div class="brandText">
+          <div class="brandName">Tusty RAG</div>
+          <div class="brandSub">Admin Console</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="navItem active" href="/admin">
+          <span class="dot"></span> Admin
+        </a>
+        <a class="navItem" href="/">
+          <span class="dot"></span> Chat
+        </a>
+      </nav>
+
+      <div class="sidebarFooter">
+        <div class="mini">
+          <div class="miniTitle">Tips</div>
+          <div class="miniText">
+            Upload .txt files. Your backend reads files as UTF-8 and stores embeddings in FAISS.
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 class="title">Admin Upload</h1>
+          <p class="subtitle">Upload new documents to your RAG knowledge base.</p>
+        </div>
+
+        <div class="topbarRight">
+          <button class="btn btnGhost" id="btnTheme" type="button" title="Toggle theme">
+            Theme
+          </button>
+        </div>
+      </header>
+
+      <section class="grid">
+        <div class="card">
+          <div class="cardHeader">
+            <h2 class="cardTitle">Upload Document</h2>
+            <p class="cardDesc">Drag & drop or choose a text file.</p>
+          </div>
+
+          <div class="dropzone" id="dropzone">
+            <div class="dropIcon">⬆</div>
+            <div class="dropText">
+              <div class="dropHeadline">Drop your file here</div>
+              <div class="dropSub">or click to browse</div>
+            </div>
+
+            <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.xlsx,.png,.jpg,.jpeg,.webp,application/pdf,text/plain" />
+          </div>
+
+          <div class="row rowGap">
+            <button class="btn" id="btnUpload" type="button">Upload</button>
+            <button class="btn btnSoft" id="btnClear" type="button">Clear</button>
+          </div>
+
+          <div class="statusWrap">
+            <div class="progress">
+              <div class="progressBar" id="progressBar" style="width:0%"></div>
+            </div>
+            <div class="status" id="statusText">No file selected.</div>
+          </div>
+
+          <div class="hint">
+            <b>Note:</b> If you upload huge docs, startup/search may slow down. Consider splitting large files.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="cardHeader">
+            <h2 class="cardTitle">Recent Uploads</h2>
+            <p class="cardDesc">This list is stored locally in your browser.</p>
+          </div>
+
+          <div class="list" id="recentList">
+            <!-- populated by JS -->
+          </div>
+
+          <div class="row rowGap">
+            <button class="btn btnGhost" id="btnClearRecent" type="button">Clear Recent</button>
+            <a class="btn btnGhost" href="/" role="button">Go to Chat →</a>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span>© Tusty RAG • Admin UI</span>
+        <span class="muted">Connected to: <code>POST /upload</code></span>
+      </footer>
+    </main>
+  </div>
+
+  <script src="/static/script.js?v=1"></script>
+</body>
+</html>
