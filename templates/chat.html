@@ -26,7 +26,17 @@
           <span class="dot"></span> Chat
         </a>
       </nav>
+      <!-- Chats list -->
+      <div class="sideSection">
+        <div class="sideHeader">
+          <div class="sideTitle">Chats</div>
+          <button class="btn btnGhost btnTiny" id="btnNewChatSide" type="button" title="New chat">+</button>
+        </div>
 
+        <div class="chatList" id="chatList">
+          <!-- populated by JS -->
+        </div>
+      </div>
       <div class="sidebarFooter">
         <div class="mini">
           <div class="miniTitle">How it works</div>
@@ -54,7 +64,11 @@
       </header>
 
       <section class="chatCard">
-        
+        <div class="chatHeader">
+        <!-- <div class="chip">Endpoint: <code>POST /ask</code></div> -->
+        <div class="chip" id="chatInfo">Ready</div>
+      </div>
+
         <div class="chatBody" id="chatBody" aria-live="polite">
           <!-- messages injected -->
         </div>
@@ -76,10 +90,6 @@
         </div>
       </section>
 
-      <footer class="footer">
-        <span>© Tusty RAG • Chat UI</span>
-        <span class="muted">History saved locally in your browser</span>
-      </footer>
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

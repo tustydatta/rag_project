@@ -30,6 +30,8 @@ function escapeHTML(str) {
   });
 })();
 
+//console.log(Date.now());
+
 /* ========= Admin page ========= */
 function initAdmin() {
   const fileInput = $("#fileInput");
@@ -209,7 +211,13 @@ function initChat() {
   const questionInput = $("#questionInput");
   const btnSend = $("#btnSend");
   const btnNewChat = $("#btnNewChat");
+  const btnNewChatSide = $("#btnNewChatSide");
   const chatInfo = $("#chatInfo");
+  const chatList = $("#chatList");
+
+  const CHATS_KEY = "tusty_chats";
+  const CURRENT_KEY = "tusty_current_chat"
+
 
   function setInfo(text, type = "info") {
     chatInfo.textContent = text;
@@ -219,18 +227,148 @@ function initChat() {
       "var(--muted)";
   }
 
-  function loadHistory() {
-    const raw = localStorage.getItem("tusty_chat_history");
+  function uid() {
+    return "c_" + Math.random().toString(16).slice(2) + "_" + Date.now();
+  }
+
+  function loadChats() {
     try {
-      const parsed = JSON.parse(raw || "[]");
+      const parsed = JSON.parse(localStorage.getItem(CHATS_KEY) || "[]");
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
   }
 
-  function saveHistory(items) {
-    localStorage.setItem("tusty_chat_history", JSON.stringify(items.slice(-50)));
+  function saveChats(chats) {
+    localStorage.setItem(CHATS_KEY, JSON.stringify(chats.slice(-50)));
+  }
+
+  function getCurrentChatId() {
+    return localStorage.getItem(CURRENT_KEY) || "";
+  }
+
+  function setCurrentChatId(id) {
+    localStorage.setItem(CURRENT_KEY, id);
+  }
+
+  function getChatById(chats, id) {
+    return chats.find(c => c.id === id);
+  }
+
+  function formatTime(ts) {
+    try {
+      return new Date(ts).toLocaleString();
+    } catch {
+      return "";
+    }
+  }
+
+  // --- migration: old single history -> one chat session ---
+  function migrateOldHistoryIfNeeded() {
+    const chats = loadChats();
+    if (chats.length) return;
+
+    const rawOld = localStorage.getItem("tusty_chat_history");
+    if (!rawOld) return;
+
+    let oldMsgs = [];
+    try {
+      oldMsgs = JSON.parse(rawOld || "[]");
+    } catch {
+      oldMsgs = [];
+    }
+    if (!Array.isArray(oldMsgs) || !oldMsgs.length) return;
+
+    const id = uid();
+    const createdAt = Date.now();
+    const firstUser = oldMsgs.find(m => m && m.role === "user" && m.text)?.text || "Previous chat";
+
+    const migrated = [{
+      id,
+      title: makeTitle(firstUser),
+      createdAt,
+      updatedAt: createdAt,
+      messages: oldMsgs.map(m => ({
+        role: m.role,
+        text: m.text,
+        time: m.time || "",
+        id: m.id || undefined
+      }))
+    }];
+
+    saveChats(migrated);
+    setCurrentChatId(id);
+    localStorage.removeItem("tusty_chat_history");
+  }
+
+  function makeTitle(text) {
+    const t = String(text || "").trim().replace(/\s+/g, " ");
+    if (!t) return "New chat";
+    return t.length > 28 ? t.slice(0, 28) + "…" : t;
+  }
+
+  function ensureCurrentChat() {
+    let chats = loadChats();
+    let currentId = getCurrentChatId();
+
+    let current = getChatById(chats, currentId);
+    if (!current) {
+      const id = uid();
+      const now = Date.now();
+      current = { id, title: "New chat", createdAt: now, updatedAt: now, messages: [] };
+      chats.unshift(current);
+      saveChats(chats);
+      setCurrentChatId(id);
+    }
+    return current;
+  }
+
+  function updateChat(chatUpdater) {
+    const chats = loadChats();
+    const id = getCurrentChatId();
+    const idx = chats.findIndex(c => c.id === id);
+    if (idx === -1) return;
+
+    const updated = chatUpdater({ ...chats[idx] });
+    chats[idx] = updated;
+
+    // keep most recent at top
+    chats.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    saveChats(chats);
+  }
+
+  function renderChatList() {
+    const chats = loadChats().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const currentId = getCurrentChatId();
+
+    if (!chatList) return;
+
+    if (!chats.length) {
+      chatList.innerHTML = `<div class="muted">No chats yet.</div>`;
+      return;
+    }
+
+    chatList.innerHTML = chats.map(c => {
+      const active = c.id === currentId ? "active" : "";
+      return `
+        <div class="chatItem ${active}" data-id="${escapeHTML(c.id)}">
+          <div class="chatItemTitle">${escapeHTML(c.title || "New chat")}</div>
+          <div class="chatItemMeta">${escapeHTML(formatTime(c.updatedAt || c.createdAt || ""))}</div>
+        </div>
+      `;
+    }).join("");
+
+    // click handlers
+    chatList.querySelectorAll(".chatItem").forEach(el => {
+      el.addEventListener("click", () => {
+        const id = el.getAttribute("data-id");
+        if (!id) return;
+        setCurrentChatId(id);
+        renderChatList();
+        renderHistory();
+      });
+    });
   }
 
   function scrollToBottom() {
@@ -240,8 +378,8 @@ function initChat() {
   function renderMessage(m) {
     const isBot = m.role === "bot";
     const content = isBot
-      ? marked.parse(m.text)                  // markdown -> HTML
-      : `<div>${escapeHTML(m.text)}</div>`;   // user stays plain text (safe)
+      ? marked.parse(m.text)
+      : `<div>${escapeHTML(m.text)}</div>`;
 
     return `
       <div class="msg ${m.role}">
@@ -251,8 +389,16 @@ function initChat() {
     `;
   }
 
+  function getCurrentMessages() {
+    const chats = loadChats();
+    const currentId = getCurrentChatId();
+    const c = getChatById(chats, currentId);
+    return c?.messages || [];
+  }
+
   function renderHistory() {
-    const items = loadHistory();
+    const items = getCurrentMessages();
+
     if (!items.length) {
       chatBody.innerHTML = `
         <div class="msg bot">
@@ -268,15 +414,45 @@ function initChat() {
   }
 
   function addMessage(role, text) {
-    const items = loadHistory();
-    items.push({ role, text, time: nowTime() });
-    saveHistory(items);
+    const time = nowTime();
+    updateChat((chat) => {
+      const now = Date.now();
+      const msg = { role, text, time };
+
+      chat.messages = Array.isArray(chat.messages) ? chat.messages : [];
+      chat.messages.push(msg);
+      chat.updatedAt = now;
+
+      // Set title from first user message if still default
+      if (role === "user" && (!chat.title || chat.title === "New chat")) {
+        chat.title = makeTitle(text);
+      }
+
+      return chat;
+    });
+
+    renderChatList();
     renderHistory();
   }
 
   function setTextareaHeight(el) {
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  }
+
+
+  function newChat() {
+    const chats = loadChats();
+    const id = uid();
+    const now = Date.now();
+    const chat = { id, title: "New chat", createdAt: now, updatedAt: now, messages: [] };
+    chats.unshift(chat);
+    saveChats(chats);
+    setCurrentChatId(id);
+
+    renderChatList();
+    renderHistory();
+    setInfo("New chat started", "ok");
   }
 
   questionInput.addEventListener("input", () => setTextareaHeight(questionInput));
@@ -288,11 +464,8 @@ function initChat() {
     }
   });
 
-  btnNewChat.addEventListener("click", () => {
-    localStorage.removeItem("tusty_chat_history");
-    renderHistory();
-    setInfo("New chat started", "ok");
-  });
+  btnNewChat?.addEventListener("click", newChat);
+  btnNewChatSide?.addEventListener("click", newChat);
 
   async function send() {
     const question = questionInput.value.trim();
@@ -304,11 +477,17 @@ function initChat() {
     addMessage("user", question);
     setInfo("Thinking…", "info");
 
-    // show temporary bot message
+    // temp bot message (with id) so we can replace it
     const tempId = "temp_" + Date.now();
-    const items = loadHistory();
-    items.push({ role: "bot", text: "Thinking…", time: nowTime(), id: tempId });
-    saveHistory(items);
+
+    updateChat((chat) => {
+      chat.messages = Array.isArray(chat.messages) ? chat.messages : [];
+      chat.messages.push({ role: "bot", text: "Thinking…", time: nowTime(), id: tempId });
+      chat.updatedAt = Date.now();
+      return chat;
+    });
+
+    renderChatList();
     renderHistory();
 
     try {
@@ -326,20 +505,29 @@ function initChat() {
       const data = await res.json();
       const answer = (data && data.answer) ? String(data.answer) : "No answer returned.";
 
-      // replace temp message
-      const updated = loadHistory().map((m) => {
-        if (m.id === tempId) return { role: "bot", text: answer, time: nowTime() };
-        return m;
+      updateChat((chat) => {
+        chat.messages = (chat.messages || []).map((m) => {
+          if (m.id === tempId) return { role: "bot", text: answer, time: nowTime() };
+          return m;
+        });
+        chat.updatedAt = Date.now();
+        return chat;
       });
-      saveHistory(updated);
+
+      renderChatList();
       renderHistory();
       setInfo("Ready", "ok");
     } catch (err) {
-      const updated = loadHistory().map((m) => {
-        if (m.id === tempId) return { role: "bot", text: `Error: ${err.message || err}`, time: nowTime() };
-        return m;
+      updateChat((chat) => {
+        chat.messages = (chat.messages || []).map((m) => {
+          if (m.id === tempId) return { role: "bot", text: `Error: ${err.message || err}`, time: nowTime() };
+          return m;
+        });
+        chat.updatedAt = Date.now();
+        return chat;
       });
-      saveHistory(updated);
+
+      renderChatList();
       renderHistory();
       setInfo("Error", "err");
     }
@@ -347,8 +535,13 @@ function initChat() {
 
   btnSend.addEventListener("click", send);
 
+  // boot
+  migrateOldHistoryIfNeeded();
+  ensureCurrentChat();
+  renderChatList();
   renderHistory();
   setInfo("Ready", "ok");
+ 
 }
 
 /* ========= Boot ========= */
