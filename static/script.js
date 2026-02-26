@@ -216,8 +216,7 @@ function initChat() {
   const chatList = $("#chatList");
 
   const CHATS_KEY = "tusty_chats";
-  const CURRENT_KEY = "tusty_current_chat"
-
+  const CURRENT_KEY = "tusty_current_chat";
 
   function setInfo(text, type = "info") {
     chatInfo.textContent = text;
@@ -241,7 +240,7 @@ function initChat() {
   }
 
   function saveChats(chats) {
-    localStorage.setItem(CHATS_KEY, JSON.stringify(chats.slice(-50)));
+    localStorage.setItem(CHATS_KEY, JSON.stringify(chats.slice(0, 50)));
   }
 
   function getCurrentChatId() {
@@ -338,6 +337,36 @@ function initChat() {
     saveChats(chats);
   }
 
+  function deleteChatById(chatId) {
+    let chats = loadChats();
+
+    // remove the chat
+    chats = chats.filter(c => c.id !== chatId);
+    saveChats(chats);
+
+    // if we deleted the current chat, switch to another (or create new)
+    const currentId = getCurrentChatId();
+    if (currentId === chatId) {
+      chats.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      const next = chats[0]; // most recent remaining
+      if (next) {
+        setCurrentChatId(next.id);
+      } else {
+        // no chats left -> create a fresh one
+        const id = uid();
+        const now = Date.now();
+        const chat = { id, title: "New chat", createdAt: now, updatedAt: now, messages: [] };
+        chats = [chat];
+        saveChats(chats);
+        setCurrentChatId(id);
+      }
+    }
+
+    renderChatList();
+    renderHistory();
+    setInfo("Chat deleted", "ok");
+  }
+
   function renderChatList() {
     const chats = loadChats().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     const currentId = getCurrentChatId();
@@ -353,8 +382,13 @@ function initChat() {
       const active = c.id === currentId ? "active" : "";
       return `
         <div class="chatItem ${active}" data-id="${escapeHTML(c.id)}">
-          <div class="chatItemTitle">${escapeHTML(c.title || "New chat")}</div>
-          <div class="chatItemMeta">${escapeHTML(formatTime(c.updatedAt || c.createdAt || ""))}</div>
+          <div class="chatItemMain">
+            <div class="chatItemTitle">${escapeHTML(c.title || "New chat")}</div>
+            <div class="chatItemMeta">${escapeHTML(formatTime(c.updatedAt || c.createdAt || ""))}</div>
+          </div>
+
+          <button class="chatDel" type="button" title="Delete chat" data-del="${escapeHTML(c.id)}">🗑</button>
+
         </div>
       `;
     }).join("");
@@ -367,6 +401,20 @@ function initChat() {
         setCurrentChatId(id);
         renderChatList();
         renderHistory();
+      });
+    });
+
+    // delete handlers
+    chatList.querySelectorAll(".chatDel").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation(); // don't trigger opening the chat
+        const id = btn.getAttribute("data-del");
+        if (!id) return;
+
+        const ok = confirm("Delete this chat?");
+        if (!ok) return;
+
+        deleteChatById(id);
       });
     });
   }

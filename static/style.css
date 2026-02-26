@@ -540,6 +540,43 @@ code{
   border-color: rgba(110,231,255,0.85);
   box-shadow: 0 0 0 5px rgba(110,231,255,0.16), 0 10px 24px rgba(0,0,0,0.35);
 }
+/* ===== Chat item row layout + delete button ===== */
+.chatItem{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.chatItemMain{
+  flex: 1;
+  min-width: 0; /* allows ellipsis to work */
+}
+
+.chatDel{
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.08s ease, filter 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.chatDel:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  border-color: rgba(255, 93, 108, 0.45);
+  color: rgba(255, 93, 108, 0.95);
+}
+
+.chatDel:active{
+  transform: translateY(0);
+}
 #btnSend{
   font-size: 15px;
   padding: 12px 18px;
